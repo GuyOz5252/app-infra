@@ -1,4 +1,5 @@
 using AppInfra.Kafka.Abstract;
+using AppInfra.Kafka.Options;
 using AppInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,20 +14,20 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
     where TDeserializer : class, IEventDeserializer
 {
     private readonly ILogger<KafkaConsumerHostedService<TEvent, THandler, TDeserializer>> _logger;
-    private readonly IOptionsMonitor<KafkaConsumerOptions> _optionsMonitor;
+    private readonly IOptionsSnapshot<KafkaConsumerOptions> _optionsSnapshotSnapshot;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly string _name;
     private readonly TDeserializer _deserializer;
 
     public KafkaConsumerHostedService(
         ILogger<KafkaConsumerHostedService<TEvent, THandler, TDeserializer>> logger,
-        IOptionsMonitor<KafkaConsumerOptions> optionsMonitor,
+        IOptionsSnapshot<KafkaConsumerOptions> optionsSnapshot,
         IServiceScopeFactory serviceScopeFactory,
         string name,
         TDeserializer deserializer)
     {
         _logger = logger;
-        _optionsMonitor = optionsMonitor;
+        _optionsSnapshotSnapshot = optionsSnapshot;
         _serviceScopeFactory = serviceScopeFactory;
         _name = name;
         _deserializer = deserializer;
@@ -34,7 +35,7 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var kafkaConsumerOptions = _optionsMonitor.Get(_name);
+        var kafkaConsumerOptions = _optionsSnapshotSnapshot.Get(_name);
 
         var config = new ConsumerConfig
         {

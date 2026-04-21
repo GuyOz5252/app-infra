@@ -1,0 +1,42 @@
+---
+description: Do not re-validate IOptions in services that only consume them (C#)
+globs: **/*.cs
+alwaysApply: false
+---
+
+# Options validation: not inside consuming services
+
+When a type receives **`IOptions<T>`**, **`IOptionsSnapshot<T>`**, or **`IOptionsMonitor<T>`** (or binds options in its constructor), **do not add hand-written validation** of those options inside the service (no `ValidateOptions` helpers, no `string.IsNullOrWhiteSpace` guards on every property at runtime in `ProduceAsync` / handlers, etc.).
+
+**Do this instead:**
+
+- **`IValidateOptions<TOptions>`** (with `ValidateOnStart` when you want fail-fast), and/or
+- **Data annotations** on the options type + `ValidateDataAnnotations()`, and/or
+- **Configuration binding** constraints documented in app settings.
+
+Services should **assume** options are already valid for the current environment.
+
+## Examples
+
+```csharp
+// ❌ BAD — service re-validates injected options
+public async Task ProduceAsync<TEvent>(TEvent @event, CancellationToken ct)
+{
+    var o = _optionsMonitor.Get(_name);
+    if (string.IsNullOrWhiteSpace(o.BootstrapServers))
+        throw new InvalidOperationException("...");
+    ...
+}
+
+// ✅ GOOD — trust options; validation lives with registration
+// (e.g. services.AddSingleton<IValidateOptions<KafkaProducerOptions>, KafkaProducerOptionsValidator>());
+public async Task ProduceAsync<TEvent>(TEvent @event, CancellationToken ct)
+{
+    var o = _optionsMonitor.Get(_name);
+    await _producer.ProduceAsync(o.Topic, ...);
+}
+```
+
+## Scope
+
+Applies to **application / infrastructure services** that only **consume** options. **Validators** (`IValidateOptions<T>`), **options types themselves**, and **composition** (`Program.cs`, DI extension methods that call `ValidateOnStart`) are the right places for checks.

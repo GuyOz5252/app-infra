@@ -1,6 +1,6 @@
 using Confluent.Kafka;
 
-namespace AppInfra.Kafka;
+namespace AppInfra.Kafka.Options;
 
 public sealed class KafkaConsumerOptions
 {
