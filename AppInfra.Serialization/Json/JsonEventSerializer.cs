@@ -1,6 +1,7 @@
 using System.Text.Json;
+using AppInfra.Serialization.Abstract;
 
-namespace AppInfra.Serialization;
+namespace AppInfra.Serialization.Json;
 
 public sealed class JsonEventSerializer : IEventSerializer
 {

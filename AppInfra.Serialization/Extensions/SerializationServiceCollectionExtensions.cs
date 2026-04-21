@@ -1,7 +1,8 @@
+using AppInfra.Serialization.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace AppInfra.Serialization;
+namespace AppInfra.Serialization.Extensions;
 
 public static class SerializationServiceCollectionExtensions
 {

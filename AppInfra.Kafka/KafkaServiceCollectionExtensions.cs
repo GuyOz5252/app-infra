@@ -1,30 +1,30 @@
 using AppInfra.Serialization;
+using AppInfra.Serialization.Abstract;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace AppInfra.Kafka;
 
 public static class KafkaServiceCollectionExtensions
 {
-    public static IServiceCollection AddKafkaConsumer<TEvent, THandler, TDeserializer>(this IServiceCollection services)
-        where THandler : class, IKafkaEventHandler<TEvent>
-        where TDeserializer : class, IEventDeserializer
-    {
-        services.TryAddSingleton<TDeserializer>();
-        services.AddSingleton<THandler>();
-        services.AddSingleton<IKafkaEventHandler<TEvent>>(sp => sp.GetRequiredService<THandler>());
-        services.AddHostedService<KafkaConsumerHostedService<TEvent, TDeserializer>>();
-        return services;
-    }
-
-    public static IServiceCollection AddKafkaConsumer<TEvent, THandler, TDeserializer>(
+    public static void AddKafkaConsumer<TEvent, TEventProcessor, TDeserializer>(
         this IServiceCollection services,
-        Action<KafkaConsumerOptions> configure)
-        where THandler : class, IKafkaEventHandler<TEvent>
+        IConfiguration configuration,
+        string name)
+        where TEventProcessor : class, IKafkaEventProcessor<TEvent>
         where TDeserializer : class, IEventDeserializer
     {
-        ArgumentNullException.ThrowIfNull(configure);
-        services.Configure(configure);
-        return services.AddKafkaConsumer<TEvent, THandler, TDeserializer>();
+        services.AddKeyedScoped<TEventProcessor>(name);
+        services.Configure<KafkaConsumerOptions>(name, configuration.GetSection($"Kafka:Consumer:{name}"));
+        services.AddHostedService(serviceProvider =>
+            new KafkaConsumerHostedService<TEvent, TEventProcessor, TDeserializer>(
+                serviceProvider
+                    .GetRequiredService<ILogger<KafkaConsumerHostedService<TEvent, TEventProcessor, TDeserializer>>>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<KafkaConsumerOptions>>(),
+                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+                name,
+                serviceProvider.GetRequiredService<TDeserializer>()));
     }
 }

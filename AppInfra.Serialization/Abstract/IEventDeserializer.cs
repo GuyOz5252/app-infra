@@ -1,4 +1,4 @@
-namespace AppInfra.Serialization;
+namespace AppInfra.Serialization.Abstract;
 
 public interface IEventDeserializer
 {

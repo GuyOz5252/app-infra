@@ -1,0 +1,48 @@
+---
+description: ILogger<T> first in constructors and fields (C#)
+globs: **/*.cs
+alwaysApply: false
+---
+
+# `ILogger<T>` parameter and field order
+
+When a type takes **`ILogger<TCategory>`** (or `ILogger`), put it **first** in:
+
+1. **Constructor parameters** — `ILogger<...> logger` before other injected dependencies.
+2. **Private fields** — `_logger` (or the field backing the logger) before other fields.
+
+Keep the usual **`_logger`** naming for the private field.
+
+## Examples
+
+```csharp
+// ❌ BAD
+internal sealed class OrderHandler : IKafkaEventHandler<OrderEvent>
+{
+    private readonly IOrderRepository _orders;
+    private readonly ILogger<OrderHandler> _logger;
+
+    public OrderHandler(IOrderRepository orders, ILogger<OrderHandler> logger)
+    {
+        _orders = orders;
+        _logger = logger;
+    }
+}
+
+// ✅ GOOD
+internal sealed class OrderHandler : IKafkaEventHandler<OrderEvent>
+{
+    private readonly ILogger<OrderHandler> _logger;
+    private readonly IOrderRepository _orders;
+
+    public OrderHandler(ILogger<OrderHandler> logger, IOrderRepository orders)
+    {
+        _logger = logger;
+        _orders = orders;
+    }
+}
+```
+
+## Scope
+
+Applies to **classes** that receive `ILogger`/`ILogger<T>` via constructor injection. **Primary constructors**: put `ILogger<...>` first in the parameter list the same way.
