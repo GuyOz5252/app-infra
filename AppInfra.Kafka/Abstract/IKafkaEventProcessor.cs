@@ -1,4 +1,4 @@
-namespace AppInfra.Kafka;
+namespace AppInfra.Kafka.Abstract;
 
 public interface IKafkaEventProcessor<in TEvent>
 {

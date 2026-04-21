@@ -1,3 +1,4 @@
+using AppInfra.Kafka.Abstract;
 using AppInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,5 @@
 using AppInfra.Kafka;
+using AppInfra.Kafka.Extensions;
 using AppInfra.Sample;
 using AppInfra.Serialization;
 using AppInfra.Serialization.Extensions;

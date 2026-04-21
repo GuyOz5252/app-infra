@@ -1,11 +1,11 @@
-using AppInfra.Serialization;
+using AppInfra.Kafka.Abstract;
 using AppInfra.Serialization.Abstract;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace AppInfra.Kafka;
+namespace AppInfra.Kafka.Extensions;
 
 public static class KafkaServiceCollectionExtensions
 {
