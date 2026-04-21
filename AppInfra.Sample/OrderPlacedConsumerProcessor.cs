@@ -1,4 +1,3 @@
-using AppInfra.Kafka;
 using AppInfra.Kafka.Abstract;
 
 namespace AppInfra.Sample;
