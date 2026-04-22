@@ -7,8 +7,9 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="AppInfra.Messaging.Abstractions/AppInfra.Messaging.Abstractions.csproj" />
+    <Project Path="AppInfra.Messaging.Kafka/AppInfra.Messaging.Kafka.csproj" />
     <Project Path="AppInfra.Serialization/AppInfra.Serialization.csproj" />
-    <Project Path="AppInfra.Kafka/AppInfra.Kafka.csproj" />
   </Folder>
   <Project Path="AppInfra.Sample/AppInfra.Sample.csproj" />
 </Solution>

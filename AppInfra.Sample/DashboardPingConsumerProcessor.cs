@@ -1,9 +1,8 @@
-using AppInfra.Kafka;
-using AppInfra.Kafka.Abstract;
+using AppInfra.Messaging.Abstractions;
 
 namespace AppInfra.Sample;
 
-internal sealed class DashboardPingConsumerProcessor : IKafkaEventProcessor<DashboardPingEvent>
+internal sealed class DashboardPingConsumerProcessor : IEventProcessor<DashboardPingEvent>
 {
     private readonly ILogger<DashboardPingConsumerProcessor> _logger;
 
@@ -12,7 +11,10 @@ internal sealed class DashboardPingConsumerProcessor : IKafkaEventProcessor<Dash
         _logger = logger;
     }
 
-    public Task ProcessEventAsync(DashboardPingEvent @event, CancellationToken cancellationToken)
+    public Task ProcessEventAsync(
+        DashboardPingEvent @event,
+        EventContext context,
+        CancellationToken cancellationToken)
     {
         _logger.LogInformation(
             "Dashboard consumer: ping from {Source}, tick {Tick}",

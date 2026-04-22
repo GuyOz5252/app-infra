@@ -1,5 +1,6 @@
-using AppInfra.Kafka.Abstract;
-using AppInfra.Kafka.Options;
+using AppInfra.Messaging.Kafka.Extensions;
+using AppInfra.Messaging.Abstractions;
+using AppInfra.Messaging.Kafka.Options;
 using AppInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,14 +8,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace AppInfra.Kafka;
+namespace AppInfra.Messaging.Kafka;
 
 public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> : BackgroundService
-    where THandler : class, IKafkaEventProcessor<TEvent>
+    where THandler : class, IEventProcessor<TEvent>
     where TDeserializer : class, IEventDeserializer
 {
     private readonly ILogger<KafkaConsumerHostedService<TEvent, THandler, TDeserializer>> _logger;
-    private readonly IOptionsSnapshot<KafkaConsumerOptions> _optionsSnapshotSnapshot;
+    private readonly KafkaConsumerOptions _kafkaConsumerOptions;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly string _name;
     private readonly TDeserializer _deserializer;
@@ -27,7 +28,7 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
         TDeserializer deserializer)
     {
         _logger = logger;
-        _optionsSnapshotSnapshot = optionsSnapshot;
+        _kafkaConsumerOptions = optionsSnapshot.Get(name);
         _serviceScopeFactory = serviceScopeFactory;
         _name = name;
         _deserializer = deserializer;
@@ -35,17 +36,15 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var kafkaConsumerOptions = _optionsSnapshotSnapshot.Get(_name);
-
         var config = new ConsumerConfig
         {
-            BootstrapServers = kafkaConsumerOptions.BootstrapServers,
-            GroupId = kafkaConsumerOptions.Username,
-            SaslUsername = kafkaConsumerOptions.Username,
-            SaslPassword = kafkaConsumerOptions.Password,
+            BootstrapServers = _kafkaConsumerOptions.BootstrapServers,
+            GroupId = _kafkaConsumerOptions.Username,
+            SaslUsername = _kafkaConsumerOptions.Username,
+            SaslPassword = _kafkaConsumerOptions.Password,
             SecurityProtocol = SecurityProtocol.SaslPlaintext,
             SaslMechanism = SaslMechanism.ScramSha256,
-            AutoOffsetReset = kafkaConsumerOptions.AutoOffsetReset,
+            AutoOffsetReset = _kafkaConsumerOptions.AutoOffsetReset,
             EnableAutoCommit = true,
         };
 
@@ -53,12 +52,12 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
             .SetValueDeserializer(Deserializers.ByteArray)
             .Build();
 
-        consumer.Subscribe(kafkaConsumerOptions.Topic);
+        consumer.Subscribe(_kafkaConsumerOptions.Topic);
         _logger.LogInformation(
             "Kafka consumer {ConsumerName} subscribed. Topic={Topic}, GroupId={GroupId}",
             _name,
-            kafkaConsumerOptions.Topic,
-            kafkaConsumerOptions.Username);
+            _kafkaConsumerOptions.Topic,
+            _kafkaConsumerOptions.Username);
 
         try
         {
@@ -83,11 +82,12 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
                 try
                 {
                     var @event = _deserializer.Deserialize<TEvent>(result.Message.Value);
+                    var context = result.ToEventContext();
 
                     using var scope = _serviceScopeFactory.CreateScope();
                     var eventProcessor =
-                        scope.ServiceProvider.GetRequiredKeyedService<IKafkaEventProcessor<TEvent>>(_name);
-                    await eventProcessor.ProcessEventAsync(@event, stoppingToken).ConfigureAwait(false);
+                        scope.ServiceProvider.GetRequiredKeyedService<IEventProcessor<TEvent>>(_name);
+                    await eventProcessor.ProcessEventAsync(@event, context, stoppingToken).ConfigureAwait(false);
 
                     consumer.Commit(result);
                 }
@@ -95,7 +95,7 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
                 {
                     _logger.LogError(
                         exception,
-                        "Failed to process Kafka event. ConsumerName={ConsumerName}, Topic={Topic}, Partition={Partition}, Offset={Offset}",
+                        "Failed to process Kafka event. ConsumerName={ConsumerName}, Destination={Destination}, Partition={Partition}, Offset={Offset}",
                         _name,
                         result.Topic,
                         result.Partition.Value,

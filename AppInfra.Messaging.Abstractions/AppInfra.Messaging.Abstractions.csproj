@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>AppInfra.Messaging.Abstractions</RootNamespace>
+  </PropertyGroup>
+
+</Project>
