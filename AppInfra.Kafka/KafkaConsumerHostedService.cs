@@ -1,5 +1,6 @@
-using AppInfra.Kafka.Abstract;
+using AppInfra.Kafka.Extensions;
 using AppInfra.Kafka.Options;
+using AppInfra.Messaging.Abstractions;
 using AppInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,11 +11,11 @@ using Microsoft.Extensions.Options;
 namespace AppInfra.Kafka;
 
 public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> : BackgroundService
-    where THandler : class, IKafkaEventProcessor<TEvent>
+    where THandler : class, IEventProcessor<TEvent>
     where TDeserializer : class, IEventDeserializer
 {
     private readonly ILogger<KafkaConsumerHostedService<TEvent, THandler, TDeserializer>> _logger;
-    private readonly IOptionsSnapshot<KafkaConsumerOptions> _optionsSnapshotSnapshot;
+    private readonly IOptionsSnapshot<KafkaConsumerOptions> _optionsSnapshot;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly string _name;
     private readonly TDeserializer _deserializer;
@@ -27,7 +28,7 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
         TDeserializer deserializer)
     {
         _logger = logger;
-        _optionsSnapshotSnapshot = optionsSnapshot;
+        _optionsSnapshot = optionsSnapshot;
         _serviceScopeFactory = serviceScopeFactory;
         _name = name;
         _deserializer = deserializer;
@@ -35,7 +36,7 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var kafkaConsumerOptions = _optionsSnapshotSnapshot.Get(_name);
+        var kafkaConsumerOptions = _optionsSnapshot.Get(_name);
 
         var config = new ConsumerConfig
         {
@@ -83,11 +84,12 @@ public sealed class KafkaConsumerHostedService<TEvent, THandler, TDeserializer> 
                 try
                 {
                     var @event = _deserializer.Deserialize<TEvent>(result.Message.Value);
+                    var context = result.ToEventContext();
 
                     using var scope = _serviceScopeFactory.CreateScope();
                     var eventProcessor =
-                        scope.ServiceProvider.GetRequiredKeyedService<IKafkaEventProcessor<TEvent>>(_name);
-                    await eventProcessor.ProcessEventAsync(@event, stoppingToken).ConfigureAwait(false);
+                        scope.ServiceProvider.GetRequiredKeyedService<IEventProcessor<TEvent>>(_name);
+                    await eventProcessor.ProcessEventAsync(@event, context, stoppingToken).ConfigureAwait(false);
 
                     consumer.Commit(result);
                 }

@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\AppInfra.Messaging.Abstractions\AppInfra.Messaging.Abstractions.csproj" />
     <ProjectReference Include="..\AppInfra.Serialization\AppInfra.Serialization.csproj" />
   </ItemGroup>
 

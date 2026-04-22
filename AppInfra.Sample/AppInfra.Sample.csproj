@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AppInfra.Kafka\AppInfra.Kafka.csproj" />
+    <ProjectReference Include="..\AppInfra.Messaging.Abstractions\AppInfra.Messaging.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

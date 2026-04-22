@@ -1,5 +1,6 @@
-using AppInfra.Kafka.Abstract;
+using System.Text;
 using AppInfra.Kafka.Options;
+using AppInfra.Messaging.Abstractions;
 using AppInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace AppInfra.Kafka;
 
-public sealed class KafkaProducer<TSerializer> : IKafkaProducer, IAsyncDisposable
+public sealed class KafkaProducer<TSerializer> : IEventPublisher, IAsyncDisposable
     where TSerializer : class, IEventSerializer
 {
     private readonly ILogger<KafkaProducer<TSerializer>> _logger;
@@ -30,17 +31,34 @@ public sealed class KafkaProducer<TSerializer> : IKafkaProducer, IAsyncDisposabl
         _producer = CreateProducer();
     }
 
-    public async Task ProduceAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
+    public Task PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
+    {
+        return PublishAsync(@event, null, cancellationToken);
+    }
+
+    public async Task PublishAsync<TEvent>(
+        TEvent @event,
+        PublishMetadata? metadata,
+        CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
         var kafkaProducerOptions = _optionsSnapshot.Get(_name);
 
         var bytes = _serializer.Serialize(@event);
-        await _producer.ProduceAsync(
-                kafkaProducerOptions.Topic,
-                new Message<string, byte[]> { Value = bytes },
-                cancellationToken)
+        var message = new Message<string, byte[]>
+        {
+            Value = bytes,
+            Headers = BuildHeaders(metadata),
+        };
+
+        if (metadata?.Key is not null)
+        {
+            message.Key = metadata.Key;
+        }
+
+        await _producer
+            .ProduceAsync(kafkaProducerOptions.Topic, message, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -65,6 +83,22 @@ public sealed class KafkaProducer<TSerializer> : IKafkaProducer, IAsyncDisposabl
 
         _producer.Dispose();
         return ValueTask.CompletedTask;
+    }
+
+    private static Headers? BuildHeaders(PublishMetadata? metadata)
+    {
+        if (metadata?.Headers is null || metadata.Headers.Count == 0)
+        {
+            return null;
+        }
+
+        var headers = new Headers();
+        foreach (var (key, value) in metadata.Headers)
+        {
+            headers.Add(key, Encoding.UTF8.GetBytes(value));
+        }
+
+        return headers;
     }
 
     private IProducer<string, byte[]> CreateProducer()

@@ -1,5 +1,5 @@
-using AppInfra.Kafka.Abstract;
 using AppInfra.Kafka.Extensions;
+using AppInfra.Messaging.Abstractions;
 using AppInfra.Sample;
 using AppInfra.Serialization.Extensions;
 using AppInfra.Serialization.Json;
@@ -17,10 +17,19 @@ var app = builder.Build();
 
 app.MapPost(
     "/publish-example",
-    async ([FromKeyedServices("Example")] IKafkaProducer producer, CancellationToken cancellationToken) =>
+    async ([FromKeyedServices("Example")] IEventPublisher publisher, CancellationToken cancellationToken) =>
     {
-        await producer.ProduceAsync(
+        var metadata = new PublishMetadata(
+            Key: Guid.NewGuid().ToString("N"),
+            Headers: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["event-type"] = nameof(OrderPlacedEvent),
+            });
+
+        await publisher
+            .PublishAsync(
                 new OrderPlacedEvent(Guid.NewGuid(), DateTimeOffset.UtcNow),
+                metadata,
                 cancellationToken)
             .ConfigureAwait(false);
         return Results.Ok();
