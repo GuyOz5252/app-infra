@@ -15,10 +15,6 @@
         <RepositoryUrl>https://github.com/GuyOz5252/application-infra</RepositoryUrl>
         <PackageProjectUrl>https://github.com/GuyOz5252/application-infra</PackageProjectUrl>
     </PropertyGroup>
-    <ItemGroup>
-        <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\"/>
-        <None Include="$(MSBuildThisFileDirectory)LICENSE.txt" Pack="true" PackagePath="\"/>
-    </ItemGroup>
     <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj'">
         <PackageReference Include="SonarAnalyzer.CSharp">
             <PrivateAssets>all</PrivateAssets>
