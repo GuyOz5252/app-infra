@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace AppInfra.Messaging.Kafka.Extensions;
 
-public static class KafkaServiceCollectionExtensions
+public static class ServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {

@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package appinfra.sample.v1;
+
+option csharp_namespace = "AppInfra.Sample.Protos";
+
+message SampleOrderPlaced {
+  string order_id = 1;
+  int64 placed_at_unix_millis = 2;
+}

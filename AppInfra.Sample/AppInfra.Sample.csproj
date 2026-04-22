@@ -3,6 +3,18 @@
   <ItemGroup>
     <ProjectReference Include="..\AppInfra.Messaging.Kafka\AppInfra.Messaging.Kafka.csproj" />
     <ProjectReference Include="..\AppInfra.Messaging.Abstractions\AppInfra.Messaging.Abstractions.csproj" />
+    <ProjectReference Include="..\AppInfra.Serialization\AppInfra.Serialization.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\sample_order.proto" GrpcServices="None" />
   </ItemGroup>
 
 </Project>
