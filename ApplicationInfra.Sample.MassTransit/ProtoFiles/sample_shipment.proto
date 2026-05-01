@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package applicationinfra.sample.masstransit.v1;
+
+option csharp_namespace = "ApplicationInfra.Sample.MassTransit.Protobuf";
+
+message OrderShipped {
+  string order_id = 1;
+  string tracking_number = 2;
+  int64 shipped_at_unix_millis = 3;
+}

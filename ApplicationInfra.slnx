@@ -13,5 +13,6 @@
     <Project Path="ApplicationInfra.Messaging.Kafka/ApplicationInfra.Messaging.Kafka.csproj" />
     <Project Path="ApplicationInfra.Serialization/ApplicationInfra.Serialization.csproj" />
   </Folder>
+  <Project Path="ApplicationInfra.Sample.MassTransit/ApplicationInfra.Sample.MassTransit.csproj" />
   <Project Path="ApplicationInfra.Sample/ApplicationInfra.Sample.csproj" />
 </Solution>

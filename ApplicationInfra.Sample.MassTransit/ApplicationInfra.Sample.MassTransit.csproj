@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ApplicationInfra.Serialization\ApplicationInfra.Serialization.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Google.Protobuf" />
+        <PackageReference Include="Grpc.Tools">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="MassTransit" />
+        <PackageReference Include="MassTransit.Kafka" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="ProtoFiles\sample_shipment.proto" GrpcServices="None" />
+    </ItemGroup>
+
+</Project>
