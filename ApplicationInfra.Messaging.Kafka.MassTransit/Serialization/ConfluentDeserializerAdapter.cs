@@ -1,7 +1,7 @@
 using ApplicationInfra.Serialization.Abstract;
 using Confluent.Kafka;
 
-namespace ApplicationInfra.Sample.MassTransit.Serialization;
+namespace ApplicationInfra.Messaging.Kafka.MassTransit.Serialization;
 
 internal sealed class ConfluentDeserializerAdapter<T> : IDeserializer<T>
 {

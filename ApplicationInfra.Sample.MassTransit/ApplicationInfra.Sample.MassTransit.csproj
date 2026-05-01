@@ -5,7 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ApplicationInfra.Serialization\ApplicationInfra.Serialization.csproj" />
+        <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka.MassTransit\ApplicationInfra.Messaging.Kafka.MassTransit.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -14,8 +14,6 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="MassTransit" />
-        <PackageReference Include="MassTransit.Kafka" />
     </ItemGroup>
 
     <ItemGroup>
