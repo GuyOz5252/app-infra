@@ -67,12 +67,12 @@ public sealed class MassTransitKafkaConfigurator
 
         _services.AddKeyedScoped<IEventProcessor<TEvent>, TProcessor>(name);
 
-        _services.AddTransient<MassTransitConsumerBridge<TEvent>>(sp =>
-            new MassTransitConsumerBridge<TEvent>(sp, name));
+        _services.AddTransient<MassTransitConsumer<TEvent>>(sp =>
+            new MassTransitConsumer<TEvent>(sp, name));
 
         _firstEntry ??= (name, IsProducer: false);
 
-        _riderActions.Add(rider => rider.AddConsumer<MassTransitConsumerBridge<TEvent>>());
+        _riderActions.Add(rider => rider.AddConsumer<MassTransitConsumer<TEvent>>());
 
         // UsingKafka callback runs after DI is built (IRiderRegistrationContext is the service provider),
         // so we can resolve IOptionsMonitor here for full named-options support.
@@ -86,7 +86,7 @@ public sealed class MassTransitKafkaConfigurator
             {
                 e.SetValueDeserializer(new ConfluentDeserializerAdapter<TEvent>(
                     context.GetRequiredService<TDeserializer>()));
-                e.ConfigureConsumer<MassTransitConsumerBridge<TEvent>>(context);
+                e.ConfigureConsumer<MassTransitConsumer<TEvent>>(context);
             });
         });
 

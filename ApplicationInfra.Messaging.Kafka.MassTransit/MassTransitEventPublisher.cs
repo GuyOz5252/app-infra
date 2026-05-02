@@ -1,10 +1,9 @@
 using ApplicationInfra.Messaging.Abstractions;
 using MassTransit;
-using MassTransit.KafkaIntegration;
 
 namespace ApplicationInfra.Messaging.Kafka.MassTransit;
 
-internal sealed class MassTransitEventPublisher<TEvent> : IEventPublisher
+public class MassTransitEventPublisher<TEvent> : IEventPublisher 
     where TEvent : class
 {
     private readonly ITopicProducer<TEvent> _producer;
@@ -27,18 +26,19 @@ internal sealed class MassTransitEventPublisher<TEvent> : IEventPublisher
                 $"This publisher is bound to {typeof(TEvent).Name}. Cannot publish {typeof(T).Name}.");
         }
 
-        if (metadata?.Headers is { Count: > 0 } headers)
+        if (metadata?.Headers is not { Count: > 0 } headers)
         {
-            var pipe = Pipe.Execute<KafkaSendContext<TEvent>>(ctx =>
-            {
-                foreach (var (key, value) in headers)
-                {
-                    ctx.Headers.Set(key, value);
-                }
-            });
-            return _producer.Produce(typed, pipe, cancellationToken);
+            return _producer.Produce(typed, cancellationToken);
         }
 
-        return _producer.Produce(typed, cancellationToken);
+        var pipe = Pipe.Execute<KafkaSendContext<TEvent>>(kafkaSendContext =>
+        {
+            foreach (var (key, value) in headers)
+            {
+                kafkaSendContext.Headers.Set(key, value);
+            }
+        });
+        
+        return _producer.Produce(typed, pipe, cancellationToken);
     }
 }
