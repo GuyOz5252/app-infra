@@ -1,10 +1,10 @@
-using ApplicationInfra.Messaging.Abstractions;
 using ApplicationInfra.Sample.MassTransit.Protobuf;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace ApplicationInfra.Sample.MassTransit;
 
-internal sealed class OrderShippedConsumer : IEventProcessor<OrderShipped>
+internal sealed class OrderShippedConsumer : IConsumer<OrderShipped>
 {
     private readonly ILogger<OrderShippedConsumer> _logger;
 
@@ -13,14 +13,14 @@ internal sealed class OrderShippedConsumer : IEventProcessor<OrderShipped>
         _logger = logger;
     }
 
-    public Task ProcessEventAsync(OrderShipped @event, EventContext context, CancellationToken cancellationToken)
+    public Task Consume(ConsumeContext<OrderShipped> context)
     {
-        var shippedAt = DateTimeOffset.FromUnixTimeMilliseconds(@event.ShippedAtUnixMillis);
+        var shippedAt = DateTimeOffset.FromUnixTimeMilliseconds(context.Message.ShippedAtUnixMillis);
 
         _logger.LogInformation(
             "Received OrderShipped — OrderId={OrderId}, Tracking={TrackingNumber}, ShippedAt={ShippedAt}",
-            @event.OrderId,
-            @event.TrackingNumber,
+            context.Message.OrderId,
+            context.Message.TrackingNumber,
             shippedAt);
 
         return Task.CompletedTask;

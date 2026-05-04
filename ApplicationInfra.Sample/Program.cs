@@ -67,4 +67,18 @@ app.MapPost(
         return Results.Ok();
     });
 
+app.MapPost(
+    "/publish-schema-registry-proto-example",
+    async ([FromKeyedServices("SchemaRegistryProto")] IEventPublisher publisher, CancellationToken cancellationToken) =>
+    {
+        var message = new SampleOrderPlaced
+        {
+            OrderId = Guid.NewGuid().ToString(),
+            PlacedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        };
+
+        await publisher.PublishAsync(message, cancellationToken).ConfigureAwait(false);
+        return Results.Ok();
+    });
+
 await app.RunAsync();

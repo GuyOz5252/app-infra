@@ -1,6 +1,6 @@
 using ApplicationInfra.Messaging.Abstractions;
-using ApplicationInfra.Messaging.Kafka.MassTransit.Options;
 using ApplicationInfra.Messaging.Kafka.MassTransit.Serialization;
+using ApplicationInfra.Messaging.Kafka.MassTransit.Options;
 using ApplicationInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using MassTransit;
@@ -16,9 +16,6 @@ public sealed class MassTransitKafkaConfigurator
     private readonly IConfiguration _configuration;
     private readonly List<Action<IRiderRegistrationConfigurator>> _riderActions = [];
     private readonly List<Action<IRiderRegistrationContext, IKafkaFactoryConfigurator>> _kafkaEndpointActions = [];
-
-    // Tracks the first registered entry so Apply() can resolve bootstrap servers for k.Host().
-    private (string Name, bool IsProducer)? _firstEntry;
 
     internal MassTransitKafkaConfigurator(IServiceCollection services, IConfiguration configuration)
     {
@@ -36,17 +33,12 @@ public sealed class MassTransitKafkaConfigurator
 
         _services.AddKeyedSingleton<IEventPublisher>(name,
             (sp, _) => new MassTransitEventPublisher<TEvent>(sp.GetRequiredService<ITopicProducer<TEvent>>()));
-
-        _firstEntry ??= (name, IsProducer: true);
-
-        // rider.AddProducer needs topic and ProducerConfig before DI is built (AddRider runs at
-        // service-registration time), so we read from IConfiguration here — the only point at which
-        // IOptionsMonitor is not yet available.
+        
         _riderActions.Add(rider =>
         {
             var opts = _configuration
                 .GetSection($"Kafka:Producers:{name}")
-                .Get<MassTransitKafkaProducerOptions>() ?? new MassTransitKafkaProducerOptions();
+                .Get<MassTransitKafkaProducerOptions>() ?? throw new Exception(); // TODO: Exception
 
             rider.AddProducer<TEvent>(opts.Topic, BuildProducerConfig(opts), (riderCtx, p) =>
                 p.SetValueSerializer(new ConfluentSerializerAdapter<TEvent>(
@@ -70,12 +62,8 @@ public sealed class MassTransitKafkaConfigurator
         _services.AddTransient<MassTransitConsumer<TEvent>>(sp =>
             new MassTransitConsumer<TEvent>(sp, name));
 
-        _firstEntry ??= (name, IsProducer: false);
-
         _riderActions.Add(rider => rider.AddConsumer<MassTransitConsumer<TEvent>>());
 
-        // UsingKafka callback runs after DI is built (IRiderRegistrationContext is the service provider),
-        // so we can resolve IOptionsMonitor here for full named-options support.
         _kafkaEndpointActions.Add((context, k) =>
         {
             var opts = context
@@ -93,9 +81,8 @@ public sealed class MassTransitKafkaConfigurator
         return this;
     }
 
-    internal void Apply()
+    internal void Configure()
     {
-        var firstEntry = _firstEntry;
         var riderActions = _riderActions.ToList();
         var kafkaEndpointActions = _kafkaEndpointActions.ToList();
 
@@ -112,8 +99,7 @@ public sealed class MassTransitKafkaConfigurator
 
                 rider.UsingKafka((context, k) =>
                 {
-                    // Required by MassTransit validation; per-endpoint configs override this for actual connections.
-                    k.Host(ResolveFirstBootstrapServers(context, firstEntry));
+                    k.Host("localhost:9092");
 
                     foreach (var action in kafkaEndpointActions)
                     {
@@ -124,65 +110,28 @@ public sealed class MassTransitKafkaConfigurator
         });
     }
 
-    private static string ResolveFirstBootstrapServers(
-        IRiderRegistrationContext context,
-        (string Name, bool IsProducer)? firstEntry)
+    private ProducerConfig BuildProducerConfig(MassTransitKafkaProducerOptions options)
     {
-        if (firstEntry is null)
-        {
-            return "localhost:9092";
-        }
-
-        if (firstEntry.Value.IsProducer)
-        {
-            var opts = context
-                .GetRequiredService<IOptionsMonitor<MassTransitKafkaProducerOptions>>()
-                .Get(firstEntry.Value.Name);
-            return string.IsNullOrWhiteSpace(opts.BootstrapServers) ? "localhost:9092" : opts.BootstrapServers;
-        }
-        else
-        {
-            var opts = context
-                .GetRequiredService<IOptionsMonitor<MassTransitKafkaConsumerOptions>>()
-                .Get(firstEntry.Value.Name);
-            return string.IsNullOrWhiteSpace(opts.BootstrapServers) ? "localhost:9092" : opts.BootstrapServers;
-        }
-    }
-
-    private static ProducerConfig BuildProducerConfig(MassTransitKafkaProducerOptions options)
-    {
-        var config = new ProducerConfig
+        return new ProducerConfig
         {
             BootstrapServers = options.BootstrapServers,
+            SaslUsername = options.Username,
+            SaslPassword = options.Password,
+            SecurityProtocol = SecurityProtocol.SaslPlaintext,
+            SaslMechanism = SaslMechanism.Plain
         };
-
-        if (options.Username is not null)
-        {
-            config.SaslUsername = options.Username;
-            config.SaslPassword = options.Password;
-            config.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-            config.SaslMechanism = SaslMechanism.Plain;
-        }
-
-        return config;
     }
 
-    private static ConsumerConfig BuildConsumerConfig(MassTransitKafkaConsumerOptions options)
+    private ConsumerConfig BuildConsumerConfig(MassTransitKafkaConsumerOptions options)
     {
-        var config = new ConsumerConfig
+        return new ConsumerConfig
         {
             BootstrapServers = options.BootstrapServers,
             GroupId = options.ConsumerGroup,
+            SaslUsername = options.Username,
+            SaslPassword = options.Password,
+            SecurityProtocol = SecurityProtocol.SaslPlaintext,
+            SaslMechanism = SaslMechanism.Plain
         };
-
-        if (options.Username is not null)
-        {
-            config.SaslUsername = options.Username;
-            config.SaslPassword = options.Password;
-            config.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-            config.SaslMechanism = SaslMechanism.Plain;
-        }
-
-        return config;
     }
 }

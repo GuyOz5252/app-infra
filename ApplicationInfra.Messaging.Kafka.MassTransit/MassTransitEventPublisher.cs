@@ -15,7 +15,7 @@ public class MassTransitEventPublisher<TEvent> : IEventPublisher
 
     public Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default)
     {
-        return PublishAsync(@event, metadata: null, cancellationToken);
+        return PublishAsync(@event, null, cancellationToken);
     }
 
     public Task PublishAsync<T>(T @event, PublishMetadata? metadata, CancellationToken cancellationToken = default)

@@ -8,6 +8,7 @@
         <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka\ApplicationInfra.Messaging.Kafka.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Messaging.Abstractions\ApplicationInfra.Messaging.Abstractions.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Serialization\ApplicationInfra.Serialization.csproj"/>
+        <ProjectReference Include="..\ApplicationInfra.Serialization.SchemaRegistry\ApplicationInfra.Serialization.SchemaRegistry.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

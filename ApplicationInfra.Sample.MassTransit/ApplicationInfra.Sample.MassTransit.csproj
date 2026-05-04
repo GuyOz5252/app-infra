@@ -5,10 +5,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka.MassTransit\ApplicationInfra.Messaging.Kafka.MassTransit.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
+        <PackageReference Include="MassTransit" />
+        <PackageReference Include="MassTransit.Kafka" />
+        <PackageReference Include="Confluent.SchemaRegistry" />
+        <PackageReference Include="Confluent.SchemaRegistry.Serdes.Protobuf" />
         <PackageReference Include="Google.Protobuf" />
         <PackageReference Include="Grpc.Tools">
             <PrivateAssets>all</PrivateAssets>

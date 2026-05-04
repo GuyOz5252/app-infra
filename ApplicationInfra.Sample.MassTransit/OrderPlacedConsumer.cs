@@ -1,9 +1,9 @@
-using ApplicationInfra.Messaging.Abstractions;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 
 namespace ApplicationInfra.Sample.MassTransit;
 
-internal sealed class OrderPlacedConsumer : IEventProcessor<OrderPlacedMessage>
+internal sealed class OrderPlacedConsumer : IConsumer<OrderPlacedMessage>
 {
     private readonly ILogger<OrderPlacedConsumer> _logger;
 
@@ -12,12 +12,12 @@ internal sealed class OrderPlacedConsumer : IEventProcessor<OrderPlacedMessage>
         _logger = logger;
     }
 
-    public Task ProcessEventAsync(OrderPlacedMessage @event, EventContext context, CancellationToken cancellationToken)
+    public Task Consume(ConsumeContext<OrderPlacedMessage> context)
     {
         _logger.LogInformation(
             "Received OrderPlaced — OrderId={OrderId}, PlacedAt={PlacedAt}",
-            @event.OrderId,
-            @event.PlacedAt);
+            context.Message.OrderId,
+            context.Message.PlacedAt);
         return Task.CompletedTask;
     }
 }
