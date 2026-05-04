@@ -5,13 +5,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka\ApplicationInfra.Messaging.Kafka.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Messaging.Abstractions\ApplicationInfra.Messaging.Abstractions.csproj"/>
-        <ProjectReference Include="..\ApplicationInfra.Serialization\ApplicationInfra.Serialization.csproj"/>
-        <ProjectReference Include="..\ApplicationInfra.Serialization.SchemaRegistry\ApplicationInfra.Serialization.SchemaRegistry.csproj"/>
+        <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka.MassTransit\ApplicationInfra.Messaging.Kafka.MassTransit.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Google.Protobuf" />
         <PackageReference Include="Grpc.Tools">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

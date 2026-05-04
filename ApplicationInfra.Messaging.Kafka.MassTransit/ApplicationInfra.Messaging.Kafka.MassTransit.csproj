@@ -2,13 +2,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ApplicationInfra.Messaging.Abstractions\ApplicationInfra.Messaging.Abstractions.csproj" />
-        <ProjectReference Include="..\ApplicationInfra.Serialization\ApplicationInfra.Serialization.csproj" />
-        <ProjectReference Include="..\ApplicationInfra.Serialization.SchemaRegistry\ApplicationInfra.Serialization.SchemaRegistry.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Confluent.SchemaRegistry" />
-        <PackageReference Include="Confluent.SchemaRegistry.Serdes.Protobuf" />
+        <PackageReference Include="Confluent.Kafka" />
         <PackageReference Include="MassTransit" />
         <PackageReference Include="MassTransit.Kafka" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />

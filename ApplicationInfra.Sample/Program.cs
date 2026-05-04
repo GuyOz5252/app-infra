@@ -1,28 +1,22 @@
 using ApplicationInfra.Messaging.Abstractions;
-using ApplicationInfra.Messaging.Kafka.Extensions;
+using ApplicationInfra.Messaging.Kafka.MassTransit.Extensions;
 using ApplicationInfra.Sample;
 using ApplicationInfra.Sample.Protobuf;
-using ApplicationInfra.Serialization.Extensions;
-using ApplicationInfra.Serialization.Json;
-using ApplicationInfra.Serialization.Protobuf;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddJsonEventSerialization();
-
-builder.Services.AddProtobufEventSerialization(parsers =>
+builder.Services.AddMassTransitKafka(builder.Configuration, cfg =>
 {
-    parsers.Add(SampleOrderPlaced.Parser);
+    cfg.AddProducer<OrderPlacedEvent>("Example");
+
+    cfg.AddProducer<SampleOrderPlaced>("ProtoExample", (_, p) =>
+        p.SetValueSerializer(ProtobufConfluentSerializer<SampleOrderPlaced>.Instance));
+
+    cfg.AddConsumer<OrderPlacedEvent, OrderPlacedConsumerProcessor>("Orders");
+
+    cfg.AddConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor>("ProtoOrders", e =>
+        e.SetValueDeserializer(new ProtobufConfluentDeserializer<SampleOrderPlaced>(SampleOrderPlaced.Parser)));
 });
-
-builder.Services.AddKafkaProducer<JsonEventSerializer>(builder.Configuration, "Example");
-builder.Services.AddKafkaProducer<ProtobufEventSerializer>(builder.Configuration, "ProtoExample");
-
-builder.Services.AddKafkaConsumer<OrderPlacedEvent, OrderPlacedConsumerProcessor, JsonEventDeserializer>(
-    builder.Configuration, "Orders");
-
-builder.Services.AddKafkaConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor, ProtobufEventDeserializer>(
-    builder.Configuration, "ProtoOrders");
 
 var app = builder.Build();
 
@@ -64,20 +58,6 @@ app.MapPost(
         };
 
         await publisher.PublishAsync(message, metadata, cancellationToken).ConfigureAwait(false);
-        return Results.Ok();
-    });
-
-app.MapPost(
-    "/publish-schema-registry-proto-example",
-    async ([FromKeyedServices("SchemaRegistryProto")] IEventPublisher publisher, CancellationToken cancellationToken) =>
-    {
-        var message = new SampleOrderPlaced
-        {
-            OrderId = Guid.NewGuid().ToString(),
-            PlacedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        };
-
-        await publisher.PublishAsync(message, cancellationToken).ConfigureAwait(false);
         return Results.Ok();
     });
 

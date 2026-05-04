@@ -1,5 +1,5 @@
-using ApplicationInfra.Messaging.Kafka;
 using ApplicationInfra.Messaging.Abstractions;
+using ApplicationInfra.Messaging.Kafka.MassTransit;
 
 namespace ApplicationInfra.Sample;
 

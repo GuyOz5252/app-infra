@@ -1,7 +1,5 @@
 using ApplicationInfra.Messaging.Abstractions;
-using ApplicationInfra.Messaging.Kafka.MassTransit.Serialization;
 using ApplicationInfra.Messaging.Kafka.MassTransit.Options;
-using ApplicationInfra.Serialization.Abstract;
 using Confluent.Kafka;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -23,35 +21,36 @@ public sealed class MassTransitKafkaConfigurator
         _configuration = configuration;
     }
 
-    public MassTransitKafkaConfigurator AddProducer<TEvent, TSerializer>(string name)
+    public void AddProducer<TEvent>(
+        string name,
+        Action<IRiderRegistrationContext, IKafkaProducerConfigurator<Null, TEvent>>? configure = null)
         where TEvent : class
-        where TSerializer : class, IEventSerializer
     {
         _services.Configure<MassTransitKafkaProducerOptions>(
             name,
             _configuration.GetSection($"Kafka:Producers:{name}"));
 
-        _services.AddKeyedSingleton<IEventPublisher>(name,
-            (sp, _) => new MassTransitEventPublisher<TEvent>(sp.GetRequiredService<ITopicProducer<TEvent>>()));
-        
+        _services.AddKeyedSingleton<IEventPublisher, MassTransitEventPublisher<TEvent>>(name);
+
         _riderActions.Add(rider =>
         {
-            var opts = _configuration
+            var kafkaProducerOptions = _configuration
                 .GetSection($"Kafka:Producers:{name}")
-                .Get<MassTransitKafkaProducerOptions>() ?? throw new Exception(); // TODO: Exception
+                .Get<MassTransitKafkaProducerOptions>() ?? throw new InvalidOperationException(
+                $"Kafka producer configuration for '{name}' is missing.");
 
-            rider.AddProducer<TEvent>(opts.Topic, BuildProducerConfig(opts), (riderCtx, p) =>
-                p.SetValueSerializer(new ConfluentSerializerAdapter<TEvent>(
-                    riderCtx.GetRequiredService<TSerializer>())));
+            rider.AddProducer<TEvent>(
+                kafkaProducerOptions.Topic,
+                BuildProducerConfig(kafkaProducerOptions),
+                (context, config) => configure?.Invoke(context, config));
         });
-
-        return this;
     }
 
-    public MassTransitKafkaConfigurator AddConsumer<TEvent, TProcessor, TDeserializer>(string name)
+    public void AddConsumer<TEvent, TProcessor>(
+        string name,
+        Action<IKafkaTopicReceiveEndpointConfigurator<Ignore, TEvent>>? configure = null)
         where TEvent : class
         where TProcessor : class, IEventProcessor<TEvent>
-        where TDeserializer : class, IEventDeserializer
     {
         _services.Configure<MassTransitKafkaConsumerOptions>(
             name,
@@ -59,26 +58,23 @@ public sealed class MassTransitKafkaConfigurator
 
         _services.AddKeyedScoped<IEventProcessor<TEvent>, TProcessor>(name);
 
-        _services.AddTransient<MassTransitConsumer<TEvent>>(sp =>
-            new MassTransitConsumer<TEvent>(sp, name));
-
         _riderActions.Add(rider => rider.AddConsumer<MassTransitConsumer<TEvent>>());
 
-        _kafkaEndpointActions.Add((context, k) =>
+        _kafkaEndpointActions.Add((context, config) =>
         {
-            var opts = context
+            var kafkaConsumerOptions = context
                 .GetRequiredService<IOptionsMonitor<MassTransitKafkaConsumerOptions>>()
                 .Get(name);
 
-            k.TopicEndpoint<TEvent>(opts.Topic, BuildConsumerConfig(opts), e =>
-            {
-                e.SetValueDeserializer(new ConfluentDeserializerAdapter<TEvent>(
-                    context.GetRequiredService<TDeserializer>()));
-                e.ConfigureConsumer<MassTransitConsumer<TEvent>>(context);
-            });
+            config.TopicEndpoint<TEvent>(
+                kafkaConsumerOptions.Topic,
+                BuildConsumerConfig(kafkaConsumerOptions),
+                endpointConfig =>
+                {
+                    configure?.Invoke(endpointConfig);
+                    endpointConfig.ConfigureConsumer<MassTransitConsumer<TEvent>>(context);
+                });
         });
-
-        return this;
     }
 
     internal void Configure()
