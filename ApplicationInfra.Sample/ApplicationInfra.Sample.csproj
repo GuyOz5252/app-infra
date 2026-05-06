@@ -5,6 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\ApplicationInfra.Books\ApplicationInfra.Books.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka\ApplicationInfra.Messaging.Kafka.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Messaging.Abstractions\ApplicationInfra.Messaging.Abstractions.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Serialization\ApplicationInfra.Serialization.csproj"/>

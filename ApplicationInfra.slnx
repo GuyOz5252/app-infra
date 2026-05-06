@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="ApplicationInfra.Api/ApplicationInfra.Api.csproj" />
+    <Project Path="ApplicationInfra.Books/ApplicationInfra.Books.csproj" />
     <Project Path="ApplicationInfra.Messaging.Abstractions/ApplicationInfra.Messaging.Abstractions.csproj" />
     <Project Path="ApplicationInfra.Messaging.Kafka.MassTransit/ApplicationInfra.Messaging.Kafka.MassTransit.csproj" />
     <Project Path="ApplicationInfra.Messaging.Kafka/ApplicationInfra.Messaging.Kafka.csproj" />
