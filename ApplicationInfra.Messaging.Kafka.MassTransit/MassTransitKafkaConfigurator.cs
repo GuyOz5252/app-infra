@@ -48,7 +48,7 @@ public sealed class MassTransitKafkaConfigurator
 
     public void AddConsumer<TEvent, TProcessor>(
         string name,
-        Action<IKafkaTopicReceiveEndpointConfigurator<Ignore, TEvent>>? configure = null)
+        Action<IRiderRegistrationContext, IKafkaTopicReceiveEndpointConfigurator<Ignore, TEvent>>? configure = null)
         where TEvent : class
         where TProcessor : class, IEventProcessor<TEvent>
     {
@@ -71,7 +71,7 @@ public sealed class MassTransitKafkaConfigurator
                 BuildConsumerConfig(kafkaConsumerOptions),
                 endpointConfig =>
                 {
-                    configure?.Invoke(endpointConfig);
+                    configure?.Invoke(context, endpointConfig);
                     endpointConfig.ConfigureConsumer<MassTransitConsumer<TEvent>>(context);
                 });
         });

@@ -2,20 +2,28 @@ using ApplicationInfra.Messaging.Abstractions;
 using ApplicationInfra.Messaging.Kafka.MassTransit.Extensions;
 using ApplicationInfra.Sample;
 using ApplicationInfra.Sample.Protobuf;
+using Confluent.Kafka;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddConfluentProtobufSerialization<SampleOrderPlaced>();
 
 builder.Services.AddMassTransitKafka(builder.Configuration, cfg =>
 {
     cfg.AddProducer<OrderPlacedEvent>("Example");
 
-    cfg.AddProducer<SampleOrderPlaced>("ProtoExample", (_, p) =>
-        p.SetValueSerializer(ProtobufConfluentSerializer<SampleOrderPlaced>.Instance));
+    cfg.AddProducer<SampleOrderPlaced>(
+        "ProtoExample",
+        (context, producer) => producer.SetValueSerializer(
+                context.GetRequiredService<ISerializer<SampleOrderPlaced>>().AsAsyncOverSync()));
 
     cfg.AddConsumer<OrderPlacedEvent, OrderPlacedConsumerProcessor>("Orders");
 
-    cfg.AddConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor>("ProtoOrders", e =>
-        e.SetValueDeserializer(new ProtobufConfluentDeserializer<SampleOrderPlaced>(SampleOrderPlaced.Parser)));
+    cfg.AddConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor>(
+        "ProtoOrders",
+        (context, topicEndpoint) =>
+            topicEndpoint.SetValueDeserializer(context.GetRequiredService<IDeserializer<SampleOrderPlaced>>()));
 });
 
 var app = builder.Build();
