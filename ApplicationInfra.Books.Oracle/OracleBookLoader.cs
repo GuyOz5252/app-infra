@@ -24,11 +24,17 @@ namespace ApplicationInfra.Books.Oracle;
 /// //   }
 /// // }
 ///
-/// public sealed class ProductBookLoader(IOptionsMonitor&lt;OracleBookLoaderOptions&gt; options)
-///     : OracleBookLoader&lt;string, ProductConfig&gt;(options, "Products")
+/// public sealed class ProductBookLoader : OracleBookLoader&lt;string, ProductConfig&gt;
 /// {
-///     protected override (string Key, ProductConfig Value) MapRow(IDataRecord record) =&gt;
-///         (record.GetString(0), new ProductConfig(record.GetString(1), record.GetDecimal(2)));
+///     public ProductBookLoader(IOptionsMonitor&lt;OracleBookLoaderOptions&gt; optionsMonitor)
+///         : base(optionsMonitor, "Products")
+///     {
+///     }
+///
+///     protected override (string Key, ProductConfig Value) MapRow(IDataRecord record)
+///     {
+///         return (record.GetString(0), new ProductConfig(record.GetString(1), record.GetDecimal(2)));
+///     }
 /// }
 /// </code>
 /// </example>

@@ -3,6 +3,7 @@ using ApplicationInfra.Books.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -41,28 +42,19 @@ public static class ServiceCollectionExtensions
         where TKey : notnull
         where TLoader : class, IBookLoader<TKey, TValue>
     {
-        // The concrete book instance is keyed so multiple books of the same <TKey, TValue>
-        // can coexist. The hosted service holds a direct reference to its own instance.
         services.AddKeyedSingleton<Book<TKey, TValue>>(name);
-
-        // Public interface — always keyed; first book of each <TKey, TValue> pair also gets
-        // an unkeyed registration as a convenience default.
-        services.AddKeyedSingleton<IBook<TKey, TValue>>(
-            name,
-            (sp, key) => sp.GetRequiredKeyedService<Book<TKey, TValue>>((string)key!));
+        services.AddKeyedSingleton<IBook<TKey, TValue>>(name, (serviceProvider, key) =>
+            serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>((string)key!));
         services.TryAddSingleton<IBook<TKey, TValue>>(
             sp => sp.GetRequiredKeyedService<IBook<TKey, TValue>>(name));
-
-        // Loader is keyed so the hosted service resolves the right one even when multiple
-        // books share the same <TKey, TValue> types.
         services.AddKeyedScoped<IBookLoader<TKey, TValue>, TLoader>(name);
-
-        services.AddHostedService(sp =>
-            new BookHostedService<TKey, TValue>(
-                sp.GetRequiredService<ILogger<BookHostedService<TKey, TValue>>>(),
+        services.AddSingleton<IBookRefreshTarget>(sp =>
+            new BookRefreshTarget<TKey, TValue>(
                 sp.GetRequiredKeyedService<Book<TKey, TValue>>(name),
                 sp.GetRequiredService<IServiceScopeFactory>(),
-                sp.GetRequiredService<IOptionsMonitor<BookOptions>>(),
+                sp.GetRequiredService<ILoggerFactory>(),
+                sp.GetRequiredService<IOptionsMonitor<BookOptions>>().Get(name).RefreshInterval,
                 name));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, BooksOrchestratorHostedService>());
     }
 }

@@ -19,13 +19,19 @@ namespace ApplicationInfra.Books.Http;
 /// // appsettings.json
 /// // "Books": { "Products": { "Url": "https://api.internal/products" } }
 ///
-/// public sealed class ProductBookLoader(
-///     IHttpClientFactory factory,
-///     IOptionsMonitor&lt;HttpBookLoaderOptions&gt; options)
-///     : HttpBookLoader&lt;string, ProductConfig, ProductDto[]&gt;(factory, options, "Products")
+/// public sealed class ProductBookLoader : HttpBookLoader&lt;string, ProductConfig, ProductDto[]&gt;
 /// {
-///     protected override IReadOnlyDictionary&lt;string, ProductConfig&gt; Map(ProductDto[] response) =&gt;
-///         response.ToDictionary(p =&gt; p.Id, p =&gt; new ProductConfig(p.Name, p.Price));
+///     public ProductBookLoader(
+///         IHttpClientFactory httpClientFactory,
+///         IOptionsMonitor&lt;HttpBookLoaderOptions&gt; optionsMonitor)
+///         : base(optionsMonitor, httpClientFactory, "Products")
+///     {
+///     }
+///
+///     protected override IReadOnlyDictionary&lt;string, ProductConfig&gt; Map(ProductDto[] response)
+///     {
+///         return response.ToDictionary(p =&gt; p.Id, p =&gt; new ProductConfig(p.Name, p.Price));
+///     }
 /// }
 /// </code>
 /// </example>
