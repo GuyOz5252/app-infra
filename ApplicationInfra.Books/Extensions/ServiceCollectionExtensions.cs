@@ -45,15 +45,15 @@ public static class ServiceCollectionExtensions
         services.AddKeyedSingleton<Book<TKey, TValue>>(name);
         services.AddKeyedSingleton<IBook<TKey, TValue>>(name, (serviceProvider, key) =>
             serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>((string)key!));
-        services.TryAddSingleton<IBook<TKey, TValue>>(
-            sp => sp.GetRequiredKeyedService<IBook<TKey, TValue>>(name));
+        services.TryAddSingleton<IBook<TKey, TValue>>(serviceProvider =>
+            serviceProvider.GetRequiredKeyedService<IBook<TKey, TValue>>(name));
         services.AddKeyedScoped<IBookLoader<TKey, TValue>, TLoader>(name);
-        services.AddSingleton<IBookRefreshTarget>(sp =>
+        services.AddSingleton<IBookRefreshTarget>(serviceProvider =>
             new BookRefreshTarget<TKey, TValue>(
-                sp.GetRequiredKeyedService<Book<TKey, TValue>>(name),
-                sp.GetRequiredService<IServiceScopeFactory>(),
-                sp.GetRequiredService<ILoggerFactory>(),
-                sp.GetRequiredService<IOptionsMonitor<BookOptions>>().Get(name).RefreshInterval,
+                serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>(name),
+                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+                serviceProvider.GetRequiredService<ILoggerFactory>(),
+                serviceProvider.GetRequiredService<IOptionsMonitor<BookOptions>>().Get(name).RefreshInterval,
                 name));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, BooksOrchestratorHostedService>());
     }
