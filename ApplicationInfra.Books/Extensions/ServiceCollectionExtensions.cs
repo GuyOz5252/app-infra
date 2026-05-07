@@ -12,6 +12,10 @@ public static class ServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {
+        /// <summary>
+        /// Registers a book whose options are bound from <c>Books:{name}</c> in <paramref name="configuration"/>.
+        /// Inject the book as <c>[FromKeyedServices("name")] IBook&lt;TKey, TValue&gt;</c>.
+        /// </summary>
         public void AddBook<TKey, TValue, TLoader>(IConfiguration configuration, string name)
             where TKey : notnull
             where TLoader : class, IBookLoader<TKey, TValue>
@@ -20,6 +24,10 @@ public static class ServiceCollectionExtensions
             AddBookCore<TKey, TValue, TLoader>(services, name);
         }
 
+        /// <summary>
+        /// Registers a book configured via an inline delegate.
+        /// Inject the book as <c>[FromKeyedServices("name")] IBook&lt;TKey, TValue&gt;</c>.
+        /// </summary>
         public void AddBook<TKey, TValue, TLoader>(string name, Action<BookOptions> configure)
             where TKey : notnull
             where TLoader : class, IBookLoader<TKey, TValue>
@@ -29,17 +37,30 @@ public static class ServiceCollectionExtensions
         }
     }
 
-    private static void AddBookCore<TKey, TValue, TLoader>(IServiceCollection services, string name)
+    internal static void AddBookCore<TKey, TValue, TLoader>(IServiceCollection services, string name)
         where TKey : notnull
         where TLoader : class, IBookLoader<TKey, TValue>
     {
-        services.TryAddSingleton<Book<TKey, TValue>>();
-        services.TryAddSingleton<IBook<TKey, TValue>>(sp => sp.GetRequiredService<Book<TKey, TValue>>());
-        services.TryAddScoped<TLoader>();
+        // The concrete book instance is keyed so multiple books of the same <TKey, TValue>
+        // can coexist. The hosted service holds a direct reference to its own instance.
+        services.AddKeyedSingleton<Book<TKey, TValue>>(name);
+
+        // Public interface — always keyed; first book of each <TKey, TValue> pair also gets
+        // an unkeyed registration as a convenience default.
+        services.AddKeyedSingleton<IBook<TKey, TValue>>(
+            name,
+            (sp, key) => sp.GetRequiredKeyedService<Book<TKey, TValue>>((string)key!));
+        services.TryAddSingleton<IBook<TKey, TValue>>(
+            sp => sp.GetRequiredKeyedService<IBook<TKey, TValue>>(name));
+
+        // Loader is keyed so the hosted service resolves the right one even when multiple
+        // books share the same <TKey, TValue> types.
+        services.AddKeyedScoped<IBookLoader<TKey, TValue>, TLoader>(name);
+
         services.AddHostedService(sp =>
-            new BookHostedService<TKey, TValue, TLoader>(
-                sp.GetRequiredService<ILogger<BookHostedService<TKey, TValue, TLoader>>>(),
-                sp.GetRequiredService<Book<TKey, TValue>>(),
+            new BookHostedService<TKey, TValue>(
+                sp.GetRequiredService<ILogger<BookHostedService<TKey, TValue>>>(),
+                sp.GetRequiredKeyedService<Book<TKey, TValue>>(name),
                 sp.GetRequiredService<IServiceScopeFactory>(),
                 sp.GetRequiredService<IOptionsMonitor<BookOptions>>(),
                 name));

@@ -1,19 +1,23 @@
-using ApplicationInfra.Books.Abstract;
+using ApplicationInfra.Books.Http;
+using ApplicationInfra.Books.Http.Options;
+using Microsoft.Extensions.Options;
 
 namespace ApplicationInfra.Sample.Books;
 
-public sealed class ProductBookLoader : IBookLoader<string, ProductConfig>
+public sealed class ProductBookLoader : HttpBookLoader<string, ProductConfig, ProductDto[]>
 {
-    public Task<IReadOnlyDictionary<string, ProductConfig>> LoadAsync(CancellationToken cancellationToken)
+    public ProductBookLoader(
+        IHttpClientFactory httpClientFactory,
+        IOptionsMonitor<HttpBookLoaderOptions> optionsMonitor,
+        string bookName)
+        : base(optionsMonitor, httpClientFactory, bookName)
     {
-        // In a real service this would query a database or internal API.
-        IReadOnlyDictionary<string, ProductConfig> data = new Dictionary<string, ProductConfig>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["prod-001"] = new ProductConfig("Widget", 9.99m),
-            ["prod-002"] = new ProductConfig("Gadget", 29.99m),
-            ["prod-003"] = new ProductConfig("Doohickey", 4.49m),
-        };
+    }
 
-        return Task.FromResult(data);
+    protected override IReadOnlyDictionary<string, ProductConfig> Map(ProductDto[] response)
+    {
+        return response.ToDictionary(
+            p => p.Id,
+            p => new ProductConfig(p.Name, p.Price), StringComparer.OrdinalIgnoreCase);
     }
 }

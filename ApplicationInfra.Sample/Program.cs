@@ -1,5 +1,5 @@
 using ApplicationInfra.Books.Abstract;
-using ApplicationInfra.Books.Extensions;
+using ApplicationInfra.Books.Http.Extensions;
 using ApplicationInfra.Messaging.Abstractions;
 using ApplicationInfra.Messaging.Kafka.Extensions;
 using ApplicationInfra.Sample;
@@ -27,9 +27,10 @@ builder.Services.AddKafkaConsumer<OrderPlacedEvent, OrderPlacedConsumerProcessor
 builder.Services.AddKafkaConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor, ProtobufEventDeserializer>(
     builder.Configuration, "ProtoOrders");
 
-// Books — hot config loaded once at startup, refreshed every 5 minutes in the background.
-// Inject IBook<string, ProductConfig> wherever you need a lock-free lookup.
-builder.Services.AddBook<string, ProductConfig, ProductBookLoader>(
+// Books — hot config loaded once at startup, refreshed in the background.
+// URL and other options come from Books:Products in appsettings.json.
+// Inject as [FromKeyedServices("Products")] IBook<string, ProductConfig>.
+builder.Services.AddHttpBook<string, ProductConfig, ProductBookLoader>(
     builder.Configuration, "Products");
 
 var app = builder.Build();
@@ -77,7 +78,7 @@ app.MapPost(
 
 app.MapGet(
     "/products/{id}",
-    (string id, IBook<string, ProductConfig> products) =>
+    (string id, [FromKeyedServices("Products")] IBook<string, ProductConfig> products) =>
         products.TryGet(id, out var product)
             ? Results.Ok(product)
             : Results.NotFound());

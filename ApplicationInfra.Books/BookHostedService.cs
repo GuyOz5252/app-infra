@@ -8,18 +8,17 @@ using Microsoft.Extensions.Options;
 
 namespace ApplicationInfra.Books;
 
-internal sealed class BookHostedService<TKey, TValue, TLoader> : BackgroundService
+internal sealed class BookHostedService<TKey, TValue> : BackgroundService
     where TKey : notnull
-    where TLoader : class, IBookLoader<TKey, TValue>
 {
-    private readonly ILogger<BookHostedService<TKey, TValue, TLoader>> _logger;
+    private readonly ILogger<BookHostedService<TKey, TValue>> _logger;
     private readonly Book<TKey, TValue> _book;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly string _name;
     private readonly BookOptions _options;
 
     public BookHostedService(
-        ILogger<BookHostedService<TKey, TValue, TLoader>> logger,
+        ILogger<BookHostedService<TKey, TValue>> logger,
         Book<TKey, TValue> book,
         IServiceScopeFactory serviceScopeFactory,
         IOptionsMonitor<BookOptions> optionsMonitor,
@@ -53,7 +52,7 @@ internal sealed class BookHostedService<TKey, TValue, TLoader> : BackgroundServi
         {
             Logger.BookRefreshStarted(_logger, _name);
             using var scope = _serviceScopeFactory.CreateScope();
-            var loader = scope.ServiceProvider.GetRequiredService<TLoader>();
+            var loader = scope.ServiceProvider.GetRequiredKeyedService<IBookLoader<TKey, TValue>>(_name);
             var data = await loader.LoadAsync(cancellationToken).ConfigureAwait(false);
             _book.Refresh(data);
             Logger.BookRefreshCompleted(_logger, _name, data.Count);
