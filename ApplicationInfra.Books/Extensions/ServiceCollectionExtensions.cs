@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions
             where TKey : notnull
             where THandler : class, IBookRefreshHandler<TKey, TValue>
         {
-            services.AddKeyedScoped<IBookRefreshHandler<TKey, TValue>, THandler>(name);
+            services.AddKeyedSingleton<IBookRefreshHandler<TKey, TValue>, THandler>(name);
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ public static class ServiceCollectionExtensions
             Func<IServiceProvider, IBookRefreshHandler<TKey, TValue>> factory)
             where TKey : notnull
         {
-            services.AddKeyedScoped<IBookRefreshHandler<TKey, TValue>>(name, (sp, _) => factory(sp));
+            services.AddKeyedSingleton<IBookRefreshHandler<TKey, TValue>>(name, (sp, _) => factory(sp));
         }
 
         /// <summary>
@@ -85,9 +85,10 @@ public static class ServiceCollectionExtensions
         services.AddKeyedScoped<IBookLoader<TKey, TValue>, TLoader>(name);
         services.AddSingleton<IBookRefreshTarget>(serviceProvider =>
             new BookRefreshTarget<TKey, TValue>(
-                serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>(name),
-                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
                 serviceProvider.GetRequiredService<ILoggerFactory>(),
+                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+                serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>(name),
+                serviceProvider.GetKeyedServices<IBookRefreshHandler<TKey, TValue>>(name),
                 serviceProvider.GetRequiredService<IOptionsMonitor<BookOptions>>().Get(name).RefreshInterval,
                 name));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, BooksOrchestratorHostedService>());

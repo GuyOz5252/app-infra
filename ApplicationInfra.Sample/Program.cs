@@ -33,10 +33,6 @@ builder.Services.AddKafkaConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerPr
 // Inject as [FromKeyedServices("Products")] IBook<string, ProductConfig>.
 builder.Services.AddHttpBook<string, ProductConfig, ProductBookLoader>(
     builder.Configuration, "Products");
-
-// ProductValidatorRegistry is a singleton that holds pre-computed ProductValidator objects.
-// ProductValidatorRefreshHandler rebuilds the list after every Products book refresh.
-builder.Services.AddSingleton<ProductValidatorRegistry>();
 builder.Services.AddBookRefreshHandler(
     "Products",
     sp => sp.GetRequiredService<ProductValidatorRegistry>());
