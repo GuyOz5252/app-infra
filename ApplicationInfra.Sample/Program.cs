@@ -1,4 +1,5 @@
 using ApplicationInfra.Books.Abstract;
+using ApplicationInfra.Books.Extensions;
 using ApplicationInfra.Books.Http.Extensions;
 using ApplicationInfra.Messaging.Abstractions;
 using ApplicationInfra.Messaging.Kafka.Extensions;
@@ -32,6 +33,13 @@ builder.Services.AddKafkaConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerPr
 // Inject as [FromKeyedServices("Products")] IBook<string, ProductConfig>.
 builder.Services.AddHttpBook<string, ProductConfig, ProductBookLoader>(
     builder.Configuration, "Products");
+
+// ProductValidatorRegistry is a singleton that holds pre-computed ProductValidator objects.
+// ProductValidatorRefreshHandler rebuilds the list after every Products book refresh.
+builder.Services.AddSingleton<ProductValidatorRegistry>();
+builder.Services.AddBookRefreshHandler(
+    "Products",
+    sp => sp.GetRequiredService<ProductValidatorRegistry>());
 
 var app = builder.Build();
 
@@ -82,5 +90,21 @@ app.MapGet(
         products.TryGet(id, out var product)
             ? Results.Ok(product)
             : Results.NotFound());
+
+// Uses the registry directly — no IBook injection needed.
+app.MapGet(
+    "/products/{id}/validate",
+    (string id, decimal price, ProductValidatorRegistry registry) =>
+    {
+        var validator = registry.GetAll()
+            .FirstOrDefault(v => v.ProductId == id);
+
+        if (validator is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(new { productId = id, price, isValid = validator.IsPriceValid(price) });
+    });
 
 await app.RunAsync();

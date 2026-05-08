@@ -39,6 +39,10 @@ internal sealed class BookRefreshTarget<TKey, TValue> : IBookRefreshTarget
             var data = await loader.LoadAsync(cancellationToken).ConfigureAwait(false);
             _book.Refresh(data);
             Logger.BookRefreshCompleted(_logger, Name, data.Count);
+
+            var handlers = scope.ServiceProvider.GetKeyedServices<IBookRefreshHandler<TKey, TValue>>(Name);
+            await Task.WhenAll(handlers.Select(h => h.OnRefreshedAsync(Name, data, cancellationToken)))
+                .ConfigureAwait(false);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
