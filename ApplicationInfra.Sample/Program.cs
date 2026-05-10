@@ -1,6 +1,10 @@
+using ApplicationInfra.Books.Abstract;
+using ApplicationInfra.Books.Extensions;
+using ApplicationInfra.Books.Http.Extensions;
 using ApplicationInfra.Messaging.Abstractions;
 using ApplicationInfra.Messaging.Kafka.Extensions;
 using ApplicationInfra.Sample;
+using ApplicationInfra.Sample.Books;
 using ApplicationInfra.Sample.Protobuf;
 using ApplicationInfra.Serialization.Extensions;
 using ApplicationInfra.Serialization.Json;
@@ -23,6 +27,15 @@ builder.Services.AddKafkaConsumer<OrderPlacedEvent, OrderPlacedConsumerProcessor
 
 builder.Services.AddKafkaConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor, ProtobufEventDeserializer>(
     builder.Configuration, "ProtoOrders");
+
+// Books — hot config loaded once at startup, refreshed in the background.
+// URL and other options come from Books:Products in appsettings.json.
+// Inject as [FromKeyedServices("Products")] IBook<string, ProductConfig>.
+builder.Services.AddHttpBook<string, ProductConfig, ProductBookLoader>(
+    builder.Configuration, "Products");
+builder.Services.AddBookRefreshHandler(
+    "Products",
+    sp => sp.GetRequiredService<ProductValidatorRegistry>());
 
 var app = builder.Build();
 
@@ -65,6 +78,29 @@ app.MapPost(
 
         await publisher.PublishAsync(message, metadata, cancellationToken).ConfigureAwait(false);
         return Results.Ok();
+    });
+
+app.MapGet(
+    "/products/{id}",
+    (string id, [FromKeyedServices("Products")] IBook<string, ProductConfig> products) =>
+        products.TryGet(id, out var product)
+            ? Results.Ok(product)
+            : Results.NotFound());
+
+// Uses the registry directly — no IBook injection needed.
+app.MapGet(
+    "/products/{id}/validate",
+    (string id, decimal price, ProductValidatorRegistry registry) =>
+    {
+        var validator = registry.GetAll()
+            .FirstOrDefault(v => v.ProductId == id);
+
+        if (validator is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(new { productId = id, price, isValid = validator.IsPriceValid(price) });
     });
 
 await app.RunAsync();
