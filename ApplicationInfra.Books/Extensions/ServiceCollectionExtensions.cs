@@ -9,10 +9,45 @@ using Microsoft.Extensions.Options;
 
 namespace ApplicationInfra.Books.Extensions;
 
+/// <summary>Extension methods for registering books and refresh handlers with <see cref="IServiceCollection"/>.</summary>
 public static class ServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {
+        /// <summary>
+        /// Registers a handler that is invoked after each successful refresh of the named book.
+        /// Use this overload when the handler class should be instantiated and managed by DI.
+        /// Multiple handlers can be registered for the same book.
+        /// </summary>
+        public void AddBookRefreshHandler<TKey, TValue, THandler>(string name)
+            where TKey : notnull
+            where THandler : class, IBookRefreshHandler<TKey, TValue>
+        {
+            services.AddKeyedSingleton<IBookRefreshHandler<TKey, TValue>, THandler>(name);
+        }
+
+        /// <summary>
+        /// Registers a handler that is invoked after each successful refresh of the named book,
+        /// using a factory to resolve the handler from the service provider.
+        /// Use this overload when the handler is already registered separately (e.g. as a singleton)
+        /// and you want to reuse that existing registration rather than creating a new instance.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// services.AddSingleton&lt;ProductCache&gt;();
+        /// services.AddBookRefreshHandler&lt;string, ProductConfig&gt;(
+        ///     "Products",
+        ///     sp =&gt; sp.GetRequiredService&lt;ProductCache&gt;());
+        /// </code>
+        /// </example>
+        public void AddBookRefreshHandler<TKey, TValue>(
+            string name,
+            Func<IServiceProvider, IBookRefreshHandler<TKey, TValue>> factory)
+            where TKey : notnull
+        {
+            services.AddKeyedSingleton<IBookRefreshHandler<TKey, TValue>>(name, (sp, _) => factory(sp));
+        }
+
         /// <summary>
         /// Registers a book whose options are bound from <c>Books:{name}</c> in <paramref name="configuration"/>.
         /// Inject the book as <c>[FromKeyedServices("name")] IBook&lt;TKey, TValue&gt;</c>.
@@ -50,9 +85,10 @@ public static class ServiceCollectionExtensions
         services.AddKeyedScoped<IBookLoader<TKey, TValue>, TLoader>(name);
         services.AddSingleton<IBookRefreshTarget>(serviceProvider =>
             new BookRefreshTarget<TKey, TValue>(
-                serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>(name),
-                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
                 serviceProvider.GetRequiredService<ILoggerFactory>(),
+                serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+                serviceProvider.GetRequiredKeyedService<Book<TKey, TValue>>(name),
+                serviceProvider.GetKeyedServices<IBookRefreshHandler<TKey, TValue>>(name),
                 serviceProvider.GetRequiredService<IOptionsMonitor<BookOptions>>().Get(name).RefreshInterval,
                 name));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, BooksOrchestratorHostedService>());

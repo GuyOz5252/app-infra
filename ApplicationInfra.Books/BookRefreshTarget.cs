@@ -8,23 +8,26 @@ namespace ApplicationInfra.Books;
 internal sealed class BookRefreshTarget<TKey, TValue> : IBookRefreshTarget
     where TKey : notnull
 {
-    private readonly Book<TKey, TValue> _book;
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly Book<TKey, TValue> _book;
+    private readonly IReadOnlyList<IBookRefreshHandler<TKey, TValue>> _bookRefreshHandlers;
 
     public string Name { get; }
     public TimeSpan RefreshInterval { get; }
 
     public BookRefreshTarget(
-        Book<TKey, TValue> book,
-        IServiceScopeFactory scopeFactory,
         ILoggerFactory loggerFactory,
+        IServiceScopeFactory scopeFactory,
+        Book<TKey, TValue> book,
+        IEnumerable<IBookRefreshHandler<TKey, TValue>> bookRefreshHandlers,
         TimeSpan refreshInterval,
         string name)
     {
-        _book = book;
-        _scopeFactory = scopeFactory;
         _logger = loggerFactory.CreateLogger<BookRefreshTarget<TKey, TValue>>();
+        _scopeFactory = scopeFactory;
+        _book = book;
+        _bookRefreshHandlers = [..bookRefreshHandlers];
         RefreshInterval = refreshInterval;
         Name = name;
     }
@@ -39,6 +42,10 @@ internal sealed class BookRefreshTarget<TKey, TValue> : IBookRefreshTarget
             var data = await loader.LoadAsync(cancellationToken).ConfigureAwait(false);
             _book.Refresh(data);
             Logger.BookRefreshCompleted(_logger, Name, data.Count);
+            
+            await Task.WhenAll(_bookRefreshHandlers.Select(bookRefreshHandler =>
+                    bookRefreshHandler.OnRefreshedAsync(Name, data, cancellationToken)))
+                .ConfigureAwait(false);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {

@@ -4,12 +4,13 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <AnalysisLevel>latest</AnalysisLevel>
         <AnalysisMode>All</AnalysisMode>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-        <NoWarn>NU1507,CA2016,S1075,CA1873</NoWarn>
+        <NoWarn>NU1507,CA2016,S1075,CA1873,CS1591</NoWarn>
         <Authors>Guy Oz</Authors>
         <Description>Ready to go packages to use with ASP.NET Core in .NET applications.</Description>
         <PackageReadmeFile>README.md</PackageReadmeFile>
