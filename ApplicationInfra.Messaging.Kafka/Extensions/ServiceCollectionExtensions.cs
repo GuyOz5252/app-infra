@@ -1,11 +1,5 @@
-using ApplicationInfra.Messaging.Abstractions;
-using ApplicationInfra.Serialization.Abstract;
-using ApplicationInfra.Messaging.Kafka.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace ApplicationInfra.Messaging.Kafka.Extensions;
 
@@ -13,37 +7,13 @@ public static class ServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {
-        public void AddKafkaProducer<TSerializer>(IConfiguration configuration,
-            string name)
-            where TSerializer : class, IEventSerializer
-        {
-            services.Configure<KafkaProducerOptions>(name, configuration.GetSection($"Kafka:Producer:{name}"));
-            services.TryAddSingleton<TSerializer>();
-            services.AddKeyedSingleton<IEventPublisher>(
-                name,
-                (serviceProvider, _) => new KafkaProducer<TSerializer>(
-                    serviceProvider.GetRequiredService<ILogger<KafkaProducer<TSerializer>>>(),
-                    serviceProvider.GetRequiredService<IOptionsSnapshot<KafkaProducerOptions>>(),
-                    name,
-                    serviceProvider.GetRequiredService<TSerializer>()));
-        }
-
-        public void AddKafkaConsumer<TEvent, TEventProcessor, TDeserializer>(
+        public void AddKafka(
             IConfiguration configuration,
-            string name)
-            where TEventProcessor : class, IEventProcessor<TEvent>
-            where TDeserializer : class, IEventDeserializer
+            Action<MassTransitKafkaConfigurator> configure)
         {
-            services.AddKeyedScoped<TEventProcessor>(name);
-            services.Configure<KafkaConsumerOptions>(name, configuration.GetSection($"Kafka:Consumers:{name}"));
-            services.AddHostedService(serviceProvider =>
-                new KafkaConsumerHostedService<TEvent, TEventProcessor, TDeserializer>(
-                    serviceProvider
-                        .GetRequiredService<ILogger<KafkaConsumerHostedService<TEvent, TEventProcessor, TDeserializer>>>(),
-                    serviceProvider.GetRequiredService<IOptionsSnapshot<KafkaConsumerOptions>>(),
-                    serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-                    name,
-                    serviceProvider.GetRequiredService<TDeserializer>()));
+            var configurator = new MassTransitKafkaConfigurator(services, configuration);
+            configure(configurator);
+            configurator.Apply();
         }
     }
 }

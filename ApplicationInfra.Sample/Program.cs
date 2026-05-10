@@ -7,7 +7,6 @@ using ApplicationInfra.Sample;
 using ApplicationInfra.Sample.Books;
 using ApplicationInfra.Sample.Protobuf;
 using ApplicationInfra.Serialization.Extensions;
-using ApplicationInfra.Serialization.Json;
 using ApplicationInfra.Serialization.Protobuf;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,23 +18,17 @@ builder.Services.AddProtobufEventSerialization(parsers =>
     parsers.Add(SampleOrderPlaced.Parser);
 });
 
-builder.Services.AddKafkaProducer<JsonEventSerializer>(builder.Configuration, "Example");
-builder.Services.AddKafkaProducer<ProtobufEventSerializer>(builder.Configuration, "ProtoExample");
-
-builder.Services.AddKafkaConsumer<OrderPlacedEvent, OrderPlacedConsumerProcessor, JsonEventDeserializer>(
-    builder.Configuration, "Orders");
-
-builder.Services.AddKafkaConsumer<SampleOrderPlaced, SampleOrderPlacedConsumerProcessor, ProtobufEventDeserializer>(
-    builder.Configuration, "ProtoOrders");
-
-// Books — hot config loaded once at startup, refreshed in the background.
-// URL and other options come from Books:Products in appsettings.json.
-// Inject as [FromKeyedServices("Products")] IBook<string, ProductConfig>.
 builder.Services.AddHttpBook<string, ProductConfig, ProductBookLoader>(
     builder.Configuration, "Products");
 builder.Services.AddBookRefreshHandler(
     "Products",
     sp => sp.GetRequiredService<ProductValidatorRegistry>());
+
+builder.Services.AddKafka(builder.Configuration, kafka =>
+{
+    kafka.AddConsumer<SampleOrderPlaced, SampleOrderPlacedEventProcessor, ProtobufEventSerializer>("SampleOrderPlaced");
+    kafka.AddProducer<SampleOrderPlaced, ProtobufEventDeserializer>("SampleOrderPlaced");
+});
 
 var app = builder.Build();
 

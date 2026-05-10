@@ -1,9 +1,9 @@
 using ApplicationInfra.Messaging.Abstractions;
-using ApplicationInfra.Messaging.Kafka.MassTransit.Extensions;
+using ApplicationInfra.Messaging.Kafka.Extensions;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ApplicationInfra.Messaging.Kafka.MassTransit;
+namespace ApplicationInfra.Messaging.Kafka;
 
 internal sealed class MassTransitConsumer<TEvent> : IConsumer<TEvent>
     where TEvent : class

@@ -2,7 +2,7 @@ using ApplicationInfra.Messaging.Abstractions;
 using MassTransit;
 using MassTransit.KafkaIntegration;
 
-namespace ApplicationInfra.Messaging.Kafka.MassTransit.Extensions;
+namespace ApplicationInfra.Messaging.Kafka.Extensions;
 
 internal static class ConsumeContextExtensions
 {

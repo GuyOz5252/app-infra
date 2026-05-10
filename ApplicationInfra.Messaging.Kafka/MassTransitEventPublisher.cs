@@ -1,7 +1,7 @@
 using ApplicationInfra.Messaging.Abstractions;
 using MassTransit;
 
-namespace ApplicationInfra.Messaging.Kafka.MassTransit;
+namespace ApplicationInfra.Messaging.Kafka;
 
 public class MassTransitEventPublisher<TEvent> : IEventPublisher 
     where TEvent : class
