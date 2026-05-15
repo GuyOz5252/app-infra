@@ -13,7 +13,7 @@ public static class ServiceCollectionExtensions
         {
             var configurator = new MassTransitKafkaConfigurator(services, configuration);
             configure(configurator);
-            configurator.Apply();
+            configurator.Configure();
         }
     }
 }

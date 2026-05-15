@@ -23,7 +23,7 @@ public sealed class MassTransitKafkaConfigurator
         _configuration = configuration;
     }
 
-    public MassTransitKafkaConfigurator AddConsumer<TEvent, TProcessor, TDeserializer>(string name)
+    public void AddConsumer<TEvent, TProcessor, TDeserializer>(string name)
         where TEvent : class
         where TProcessor : class, IEventProcessor<TEvent>
         where TDeserializer : notnull
@@ -46,26 +46,24 @@ public sealed class MassTransitKafkaConfigurator
                 .GetRequiredService<IOptionsMonitor<KafkaConsumerOptions>>()
                 .Get(name);
 
-            k.TopicEndpoint<TEvent>(opts.Topic, BuildConsumerConfig(opts), e =>
+            k.TopicEndpoint<TEvent>(opts.Topic, BuildConsumerConfig(opts), topicEndpoint =>
             {
-                e.ConfigureConsumer<MassTransitConsumer<TEvent>>(context);
+                topicEndpoint.ConfigureConsumer<MassTransitConsumer<TEvent>>(context);
 
                 if (typeof(TDeserializer).IsAssignableFrom(typeof(IEventDeserializer)))
                 {
-                    e.SetValueDeserializer(new ConfluentDeserializerAdapter<TEvent>(
+                    topicEndpoint.SetValueDeserializer(new ConfluentDeserializerAdapter<TEvent>(
                         context.GetRequiredService<TDeserializer>() as IEventDeserializer
                         ?? throw new Exception("")));
                     return;
                 }
 
-                e.SetValueDeserializer(context.GetRequiredService<IDeserializer<TEvent>>());
+                topicEndpoint.SetValueDeserializer(context.GetRequiredService<IDeserializer<TEvent>>());
             });
         });
-
-        return this;
     }
 
-    public MassTransitKafkaConfigurator AddProducer<TEvent, TSerializer>(string name)
+    public void AddProducer<TEvent, TSerializer>(string name)
         where TEvent : class
         where TSerializer : notnull
     {
@@ -73,8 +71,8 @@ public sealed class MassTransitKafkaConfigurator
             name,
             _configuration.GetSection($"Kafka:Producers:{name}"));
 
-        _services.AddKeyedSingleton<IEventPublisher>(name,
-            (sp, _) => new MassTransitEventPublisher<TEvent>(sp.GetRequiredService<ITopicProducer<TEvent>>()));
+        _services.AddKeyedSingleton<IEventPublisher>(name, (sp, _) =>
+            new MassTransitEventPublisher<TEvent>(sp.GetRequiredService<ITopicProducer<TEvent>>()));
 
         _riderActions.Add(rider =>
         {
@@ -84,27 +82,22 @@ public sealed class MassTransitKafkaConfigurator
                           ?? throw new Exception(
                               $"Failed to get kafka producer options from configuration for producer: {name}");
 
-            rider.AddProducer<TEvent>(
-                options.Topic,
-                BuildProducerConfig(options),
-                (context, producer) =>
+            rider.AddProducer<TEvent>(options.Topic, BuildProducerConfig(options), (context, producer) =>
+            {
+                if (typeof(TSerializer).IsAssignableFrom(typeof(IEventSerializer)))
                 {
-                    if (typeof(TSerializer).IsAssignableFrom(typeof(IEventSerializer)))
-                    {
-                        producer.SetValueSerializer(new ConfluentSerializerAdapter<TEvent>(
-                            context.GetRequiredService<TSerializer>() as IEventSerializer
-                                ?? throw new Exception("")));
-                        return;
-                    }
-                    
-                    producer.SetValueSerializer(context.GetRequiredService<ISerializer<TEvent>>());
-                });
-        });
+                    producer.SetValueSerializer(new ConfluentSerializerAdapter<TEvent>(
+                        context.GetRequiredService<TSerializer>() as IEventSerializer
+                        ?? throw new Exception("")));
+                    return;
+                }
 
-        return this;
+                producer.SetValueSerializer(context.GetRequiredService<ISerializer<TEvent>>());
+            });
+        });
     }
 
-    internal void Apply()
+    internal void Configure()
     {
         var riderActions = _riderActions.ToList();
         var kafkaEndpointActions = _kafkaEndpointActions.ToList();
