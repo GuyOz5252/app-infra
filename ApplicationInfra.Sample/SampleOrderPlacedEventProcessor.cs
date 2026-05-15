@@ -1,14 +1,13 @@
 using ApplicationInfra.Messaging.Abstractions;
-using ApplicationInfra.Messaging.Kafka;
 using ApplicationInfra.Sample.Protobuf;
 
 namespace ApplicationInfra.Sample;
 
-internal sealed class SampleOrderPlacedConsumerProcessor : IEventProcessor<SampleOrderPlaced>
+internal sealed class SampleOrderPlacedEventProcessor : IEventProcessor<SampleOrderPlaced>
 {
-    private readonly ILogger<SampleOrderPlacedConsumerProcessor> _logger;
+    private readonly ILogger<SampleOrderPlacedEventProcessor> _logger;
 
-    public SampleOrderPlacedConsumerProcessor(ILogger<SampleOrderPlacedConsumerProcessor> logger)
+    public SampleOrderPlacedEventProcessor(ILogger<SampleOrderPlacedEventProcessor> logger)
     {
         _logger = logger;
     }
@@ -18,7 +17,7 @@ internal sealed class SampleOrderPlacedConsumerProcessor : IEventProcessor<Sampl
         EventContext context,
         CancellationToken cancellationToken)
     {
-        context.Attributes.TryGetValue(KafkaEventContextAttributes.Partition, out var partition);
+        context.Attributes.TryGetValue("Partition", out var partition);
         _logger.LogInformation(
             "Proto orders consumer: order {OrderId} at unix millis {PlacedAtUnixMillis}; key={MessageKey}, partition={Partition}, headers={HeaderCount}",
             @event.OrderId,
