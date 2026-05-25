@@ -14,6 +14,7 @@
     <Project Path="ApplicationInfra.Messaging.Abstractions/ApplicationInfra.Messaging.Abstractions.csproj" />
     <Project Path="ApplicationInfra.Messaging.Kafka.MassTransit/ApplicationInfra.Messaging.Kafka.MassTransit.csproj" />
     <Project Path="ApplicationInfra.Messaging.Kafka/ApplicationInfra.Messaging.Kafka.csproj" />
+    <Project Path="ApplicationInfra.Logging.Serilog/ApplicationInfra.Logging.Serilog.csproj" />
     <Project Path="ApplicationInfra.Serialization/ApplicationInfra.Serialization.csproj" />
   </Folder>
   <Project Path="ApplicationInfra.Sample/ApplicationInfra.Sample.csproj" />

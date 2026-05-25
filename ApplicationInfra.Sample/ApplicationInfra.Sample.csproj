@@ -5,6 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\ApplicationInfra.Logging.Serilog\ApplicationInfra.Logging.Serilog.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Books\ApplicationInfra.Books.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Books.Http\ApplicationInfra.Books.Http.csproj"/>
         <ProjectReference Include="..\ApplicationInfra.Messaging.Kafka\ApplicationInfra.Messaging.Kafka.csproj"/>

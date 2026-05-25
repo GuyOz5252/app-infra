@@ -1,6 +1,7 @@
 using ApplicationInfra.Books.Abstract;
 using ApplicationInfra.Books.Extensions;
 using ApplicationInfra.Books.Http.Extensions;
+using ApplicationInfra.Logging.Serilog.Extensions;
 using ApplicationInfra.Messaging.Abstractions;
 using ApplicationInfra.Messaging.Kafka.Extensions;
 using ApplicationInfra.Sample;
@@ -11,6 +12,8 @@ using ApplicationInfra.Serialization.Json;
 using ApplicationInfra.Serialization.Protobuf;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApplicationInfraSerilog();
 
 builder.Services.AddJsonEventSerialization();
 
