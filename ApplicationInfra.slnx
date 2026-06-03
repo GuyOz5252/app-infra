@@ -16,5 +16,8 @@
     <Project Path="ApplicationInfra.Messaging.Kafka/ApplicationInfra.Messaging.Kafka.csproj" />
     <Project Path="ApplicationInfra.Serialization/ApplicationInfra.Serialization.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="ApplicationInfra.Books.Tests/ApplicationInfra.Books.Tests.csproj" />
+  </Folder>
   <Project Path="ApplicationInfra.Sample/ApplicationInfra.Sample.csproj" />
 </Solution>
