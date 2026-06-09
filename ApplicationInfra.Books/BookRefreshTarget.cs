@@ -42,7 +42,8 @@ internal sealed class BookRefreshTarget<TKey, TValue> : IBookRefreshTarget
             var data = await loader.LoadAsync(cancellationToken).ConfigureAwait(false);
             _book.Refresh(data);
             Logger.BookRefreshCompleted(_logger, Name, data.Count);
-            
+
+            _book.RaiseOnRefresh();
             await Task.WhenAll(_bookRefreshHandlers.Select(bookRefreshHandler =>
                     bookRefreshHandler.OnRefreshedAsync(Name, data, cancellationToken)))
                 .ConfigureAwait(false);
